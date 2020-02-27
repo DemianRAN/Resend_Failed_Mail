@@ -1,0 +1,62 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[RESEND_FAILED_MAIL]
+AS
+BEGIN
+  SET NOCOUNT ON;
+	  
+  DECLARE @mailitem_id INT
+
+  DECLARE failed_mail_cursor CURSOR FOR
+	SELECT mailitem_id 
+    FROM msdb.dbo.sysmail_faileditems
+    WHERE send_request_date > DATEADD(hour,-1,GETDATE())   -- Check failed mail in last one hour
+    ORDER BY mailitem_id
+
+  OPEN failed_mail_cursor
+	FETCH NEXT FROM failed_mail_cursor   
+	INTO @mailitem_id
+
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN  
+		DECLARE @to VARCHAR(MAX)
+		DECLARE @copy VARCHAR(MAX)
+		DECLARE @blind_copy VARCHAR(MAX)
+		DECLARE @title NVARCHAR(255)
+		DECLARE @msg NVARCHAR(MAX)
+		DECLARE @profile_name NVARCHAR(MAX)
+		DECLARE @file_attachments NVARCHAR(MAX)
+
+		SELECT @profile_name = p.name
+		     , @to = i.recipients
+			 , @copy = i.copy_recipients
+			 , @blind_copy = i.blind_copy_recipients
+			 , @title = i.[subject]
+			 , @msg = i.body
+			 , @file_attachments = i.file_attachments
+		FROM msdb.dbo.sysmail_faileditems AS i 
+		LEFT JOIN msdb.dbo.sysmail_profile AS p
+		ON p.profile_id = i.profile_id
+		WHERE i.mailitem_id = @mailitem_id
+
+		EXEC msdb.dbo.sp_send_dbmail
+		    @profile_name = @profile_name,
+		    @recipients = @to,
+		    @copy_recipients = @copy,
+			@blind_copy_recipients = @blind_copy,
+		    @body = @msg,
+		    @subject = @title,
+		    @body_format = 'HTML',
+		    @file_attachments = @file_attachments
+		
+		FETCH NEXT FROM failed_mail_cursor
+		INTO @mailitem_id
+	END
+
+	CLOSE failed_mail_cursor
+	DEALLOCATE failed_mail_cursor
+
+END
