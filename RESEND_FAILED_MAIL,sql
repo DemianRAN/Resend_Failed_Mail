@@ -46,7 +46,7 @@ BEGIN
 		    @profile_name = @profile_name,
 		    @recipients = @to,
 		    @copy_recipients = @copy,
-			@blind_copy_recipients = @blind_copy,
+		    @blind_copy_recipients = @blind_copy,
 		    @body = @msg,
 		    @subject = @title,
 		    @body_format = 'HTML',
