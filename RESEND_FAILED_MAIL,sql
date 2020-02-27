@@ -31,7 +31,7 @@ BEGIN
 		DECLARE @file_attachments NVARCHAR(MAX)
 
 		SELECT @profile_name = p.name
-		     , @to = i.recipients
+		         , @to = i.recipients
 			 , @copy = i.copy_recipients
 			 , @blind_copy = i.blind_copy_recipients
 			 , @title = i.[subject]
